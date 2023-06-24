@@ -3,9 +3,7 @@ package org.apache.bookkeeper.proto.checksum.digestManagerTest;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.buffer.UnpooledByteBufAllocator;
-import io.netty.util.ReferenceCounted;
 import junit.framework.TestCase;
-import org.apache.bookkeeper.client.api.DigestType;
 import org.apache.bookkeeper.proto.DataFormats;
 import org.apache.bookkeeper.proto.checksum.DigestManager;
 import org.apache.bookkeeper.util.ByteBufList;
@@ -55,10 +53,14 @@ public class ComputeDigestAndPackageForSendingTest extends TestCase {
 
                 //entryId, lastAddConfirmed, length, data, expected
 
-                //Suite minimale
+                //Tests based on monodimensional analysis
                 {-1,-1,0,null, NullPointerException.class},
                 {1,0,0,createEntry(0), null},
                 {2,1,1,createEntry(1), null},
+
+                //tests to have a better coverage
+                {0,1,0,createCompositeByteBufEntry(0),null},
+                {0,1,0,createWrappedEntry(0),null},
 
         });
     }
@@ -73,7 +75,6 @@ public class ComputeDigestAndPackageForSendingTest extends TestCase {
     public void testComputeDigestData() {
 
         try {
-            // Assert that the buffer of data contained in the byteBuf is equal to what sent
             ByteBufList byteBuf = (ByteBufList) digestManager.computeDigestAndPackageForSending(entryId, lastAddConfirmed, length, data,dummy, dummyInt);
             assertEquals(entryTest.readLong(), byteBuf.getBuffer(1).readLong());
         } catch (Exception e) {
@@ -81,8 +82,26 @@ public class ComputeDigestAndPackageForSendingTest extends TestCase {
         }
     }
 
+    //creation of WrappedEntry
+    private static ByteBuf createWrappedEntry(int length) {
+        ByteBuf byteBuffer = createEntry(length);
+        return Unpooled.wrappedBuffer(byteBuffer);
+    }
 
-    //method used to generate a buffer related to the single entry, filled with the informations of the entry like indicated in the documentation
+    //creation of a CompositeByteBuf
+    private static ByteBuf createCompositeByteBufEntry(int length) {
+        byte[] data = new byte[length];
+        ByteBuf byteBuffer = Unpooled.compositeBuffer();
+        byteBuffer.writeLong(ledgerId); // Ledger
+        byteBuffer.writeLong(entryId); // Entry
+        byteBuffer.writeLong(lastAddConfirmed); // LAC
+        byteBuffer.writeLong(length); // Length
+        byteBuffer.writeBytes(data);
+        return byteBuffer;
+    }
+
+
+    //create a buffer related to the single entry
     private static ByteBuf createEntry(int length) {
         byte[] data = new byte[length];
         ByteBuf byteBuffer = Unpooled.buffer(1024);
