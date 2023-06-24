@@ -7,6 +7,7 @@ import junit.framework.TestCase;
 import org.apache.bookkeeper.client.BKException;
 import org.apache.bookkeeper.proto.DataFormats;
 import org.apache.bookkeeper.proto.checksum.DigestManager;
+import org.apache.bookkeeper.proto.checksum.MacDigestManager;
 import org.apache.bookkeeper.util.ByteBufList;
 import org.junit.Before;
 import org.junit.Test;
@@ -23,7 +24,8 @@ public class VerifyDigestTest extends TestCase{
         private static DigestManager digestManager;
         private static DigestManager digestManager32;
         private static boolean flagIsV2Proto = false;
-        private static final long length = 1024;
+        private static final long length = 52;
+        private static final int limitLength = digestManager.METADATA_LENGTH + MacDigestManager.MAC_CODE_LENGTH;
         private ByteBuf dataReceived;
         private static long entryId;
         private Object expected;
@@ -72,11 +74,14 @@ public class VerifyDigestTest extends TestCase{
                     {1,ByteBufList.coalesce(createEntryWithDigest(length,ledgerId,1, DataFormats.LedgerMetadataFormat.DigestType.HMAC)),false,false, null},
 
                     //tests to have a better coverage
-                    {1,ByteBufList.coalesce(createBadShortEntryWithDigest()),false,false, BKException.BKDigestMatchException.class},
+                    {1,ByteBufList.coalesce(createBadShortEntryWithDigest(20)),false,false, BKException.BKDigestMatchException.class},
                     {1,ByteBufList.coalesce(createEntryWithDigest(length,ledgerId,1, DataFormats.LedgerMetadataFormat.DigestType.CRC32)),false,false, BKException.BKDigestMatchException.class},
                     {1,ByteBufList.coalesce(createEntryWithDigest(length,ledgerId,1, DataFormats.LedgerMetadataFormat.DigestType.HMAC)),false,true, BKException.BKDigestMatchException.class},
                     {1,ByteBufList.coalesce(createEntryWithDigest(length,ledgerId+1,1, DataFormats.LedgerMetadataFormat.DigestType.HMAC)),false,false, BKException.BKDigestMatchException.class},
                     {1,ByteBufList.coalesce(createEntryWithDigest(length,ledgerId,1, DataFormats.LedgerMetadataFormat.DigestType.CRC32C)),false,true, null},
+
+                    //tests for mutations
+                    {1,ByteBufList.coalesce(createGoodLimitEntryWithDigest(ledgerId,1, DataFormats.LedgerMetadataFormat.DigestType.HMAC)),false,false, null},
             });
         }
 
@@ -113,8 +118,16 @@ public class VerifyDigestTest extends TestCase{
         return byteBufList;
     }
 
-    private static ByteBufList createBadShortEntryWithDigest() throws GeneralSecurityException {
-        int shorterLength = 20; //must be less than 52
+    //creation of an entry with limit dimension to kill mutant
+    private static ByteBufList createGoodLimitEntryWithDigest(long inputLedgerId, long inputEntryId, DataFormats.LedgerMetadataFormat.DigestType type) throws GeneralSecurityException {
+        DigestManager digestMan = DigestManager.instantiate(inputLedgerId, "password".getBytes(), type, UnpooledByteBufAllocator.DEFAULT, false);
+        ByteBuf byteBuffer = createShortValidEntry(0);
+        ByteBufList byteBufList = (ByteBufList) digestMan.computeDigestAndPackageForSending(inputEntryId, limitLength,  0, byteBuffer, dummy, dummyInt);
+        return byteBufList;
+    }
+
+    private static ByteBufList createBadShortEntryWithDigest(int shorterLength) throws GeneralSecurityException {
+        //int shorterLength = 20; //must be less than 52
         byte[] data = generateRandomString(shorterLength).getBytes();
         ByteBuf byteBuffer = Unpooled.buffer(shorterLength);
         byteBuffer.writeBytes(data);
@@ -126,6 +139,13 @@ public class VerifyDigestTest extends TestCase{
     private static ByteBuf createEntry(long length) {
         byte[] data = bufferString.getBytes();
         ByteBuf byteBuffer = Unpooled.buffer((int)length);
+        byteBuffer.writeBytes(data);
+        return byteBuffer;
+    }
+
+    private static ByteBuf createShortValidEntry(int length) {
+        byte[] data = generateRandomString(length).getBytes();
+        ByteBuf byteBuffer = Unpooled.buffer(length);
         byteBuffer.writeBytes(data);
         return byteBuffer;
     }
