@@ -396,6 +396,7 @@
                 <param>org.apache.bookkeeper.bookie.storage.ldb.writeCacheTest.WriteCacheGetTest</param>
                 <param>org.apache.bookkeeper.bookie.storage.ldb.writeCacheTest.WriteCachePutTest</param>
                 <param>org.apache.bookkeeper.proto.checksum.digestManagerTest.ComputeDigestAndPackageForSendingTest</param>
+                <param>org.apache.bookkeeper.proto.checksum.digestManagerTest.VerifyDigestTest</param>
               </targetTests>
               <avoidCallsTo>
                 <avoidCallsTo>org.slf4j</avoidCallsTo>
