@@ -82,6 +82,9 @@ public class VerifyDigestTest extends TestCase{
 
                     //tests for mutations
                     {1,ByteBufList.coalesce(createGoodLimitEntryWithDigest(ledgerId,1, DataFormats.LedgerMetadataFormat.DigestType.HMAC)),false,false, null},
+                    {1,ByteBufList.coalesce(createEntryWithLacDigest(length,ledgerId,1, DataFormats.LedgerMetadataFormat.DigestType.HMAC)),true,false, null},
+                    {1,ByteBufList.coalesce(createBadShortEntryWithDigest(6)),true,false, BKException.BKDigestMatchException.class},
+
             });
         }
 
@@ -96,15 +99,27 @@ public class VerifyDigestTest extends TestCase{
         public void testVerifyDigest() {
             try {
 
-                ByteBuf dataBack;
+                ByteBuf dataBack = null;
+                DigestManager.RecoveryData recoveryData = null;
                 if(need32Manager){
                     dataBack = digestManager32.verifyDigestAndReturnData(entryId, dataReceived);
                 }else{
-                    dataBack = digestManager.verifyDigestAndReturnData(entryId, dataReceived);
+                    if(skipEntryIdCheck){
+                        recoveryData = digestManager.verifyDigestAndReturnLastConfirmed(dataReceived);
+                    }else{
+                        dataBack = digestManager.verifyDigestAndReturnData(entryId, dataReceived);
+                    }
+
                 }
-                ByteBuf dataToCompare = Unpooled.buffer((int)length);
-                dataToCompare.writeBytes(dataBack,0,(int)length);
-                assertEquals(this.entryTest.toString(), dataToCompare.toString());
+
+                if(!skipEntryIdCheck){
+                    ByteBuf dataToCompare = Unpooled.buffer((int)length);
+                    dataToCompare.writeBytes(dataBack,0,(int)length);
+                    assertEquals(this.entryTest.toString(), dataToCompare.toString());
+                }else{
+                    assertEquals(1,recoveryData.getLastAddConfirmed());
+                }
+
             } catch (Exception e) {
                 assertEquals(expected, e.getClass());
             }
@@ -115,6 +130,13 @@ public class VerifyDigestTest extends TestCase{
         DigestManager digestMan = DigestManager.instantiate(inputLedgerId, "password".getBytes(), type, UnpooledByteBufAllocator.DEFAULT, false);
         ByteBuf byteBuffer = createEntry(length);
         ByteBufList byteBufList = (ByteBufList) digestMan.computeDigestAndPackageForSending(inputEntryId, 0,  length, byteBuffer, dummy, dummyInt);
+        return byteBufList;
+    }
+
+    private static ByteBufList createEntryWithLacDigest(long length, long inputLedgerId, long inputEntryId, DataFormats.LedgerMetadataFormat.DigestType type) throws GeneralSecurityException {
+        DigestManager digestMan = DigestManager.instantiate(inputLedgerId, "password".getBytes(), type, UnpooledByteBufAllocator.DEFAULT, false);
+        ByteBuf byteBuffer = createEntry(length);
+        ByteBufList byteBufList = (ByteBufList) digestMan.computeDigestAndPackageForSending(inputEntryId, 1,  length, byteBuffer, dummy, dummyInt);
         return byteBufList;
     }
 

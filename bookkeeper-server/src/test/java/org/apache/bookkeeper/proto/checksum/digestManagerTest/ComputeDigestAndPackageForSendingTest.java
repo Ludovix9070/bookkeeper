@@ -6,6 +6,7 @@ import io.netty.buffer.UnpooledByteBufAllocator;
 import junit.framework.TestCase;
 import org.apache.bookkeeper.proto.DataFormats;
 import org.apache.bookkeeper.proto.checksum.DigestManager;
+import org.apache.bookkeeper.proto.checksum.MacDigestManager;
 import org.apache.bookkeeper.util.ByteBufList;
 import org.junit.Before;
 import org.junit.Test;
@@ -22,10 +23,11 @@ import java.util.Collection;
 public class ComputeDigestAndPackageForSendingTest extends TestCase {
     private static DigestManager digestManager;
 
-    private static long lastAddConfirmed;
+    private long lastAddConfirmed;
     private long length;
+    private long mutationLength = digestManager.METADATA_LENGTH - MacDigestManager.MAC_CODE_LENGTH;
     private ByteBuf data;
-    private static long entryId;
+    private long entryId;
     private Object expected;
     private static final long ledgerId = 1;
 
@@ -55,12 +57,17 @@ public class ComputeDigestAndPackageForSendingTest extends TestCase {
 
                 //Tests based on monodimensional analysis
                 {-1,-1,0,null, NullPointerException.class},
-                {1,0,0,createEntry(0), null},
-                {2,1,1,createEntry(1), null},
+                {1,0,0,createEntry(0, 0, 1), null},
+                {2,1,1,createEntry(1, 1, 2), null},
 
                 //tests to have a better coverage
-                {0,1,0,createCompositeByteBufEntry(0),null},
-                {0,1,0,createWrappedEntry(0),null},
+                {0,1,0,createCompositeByteBufEntry(0, 1, 0),null},
+                {0,1,0,createWrappedEntry(0, 1, 0),null},
+
+                //tests for mutations
+                {2,1,60,createEntry(60, 1, 2), null},
+                {0,1,60,createCompositeByteBufEntry(60, 1, 0),null},
+                {0,1,60,createWrappedEntry(60, 1, 0),null},
 
         });
     }
@@ -68,14 +75,18 @@ public class ComputeDigestAndPackageForSendingTest extends TestCase {
     @Before
     public void setUp() throws GeneralSecurityException {
         this.digestManager = DigestManager.instantiate(ledgerId, "password".getBytes(), DataFormats.LedgerMetadataFormat.DigestType.HMAC, UnpooledByteBufAllocator.DEFAULT, flagIsV2Proto);
-        this.entryTest = createEntry((int)length);
+        //this.entryTest = createEntry((int)length);
     }
 
     @Test
     public void testComputeDigestData() {
 
         try {
+            this.entryTest = createEntry((int)length, this.lastAddConfirmed, this.entryId);
             ByteBufList byteBuf = (ByteBufList) digestManager.computeDigestAndPackageForSending(entryId, lastAddConfirmed, length, data,dummy, dummyInt);
+            assertEquals(entryTest.readLong(), byteBuf.getBuffer(1).readLong());
+            assertEquals(entryTest.readLong(), byteBuf.getBuffer(1).readLong());
+            assertEquals(entryTest.readLong(), byteBuf.getBuffer(1).readLong());
             assertEquals(entryTest.readLong(), byteBuf.getBuffer(1).readLong());
         } catch (Exception e) {
             assertEquals(this.expected, e.getClass());
@@ -83,18 +94,18 @@ public class ComputeDigestAndPackageForSendingTest extends TestCase {
     }
 
     //creation of WrappedEntry
-    private static ByteBuf createWrappedEntry(int length) {
-        ByteBuf byteBuffer = createEntry(length);
+    private static ByteBuf createWrappedEntry(int length, long lac, long entryId) {
+        ByteBuf byteBuffer = createEntry(length, lac, entryId);
         return Unpooled.wrappedBuffer(byteBuffer);
     }
 
     //creation of a CompositeByteBuf
-    private static ByteBuf createCompositeByteBufEntry(int length) {
+    private static ByteBuf createCompositeByteBufEntry(int length, long lac, long entryId) {
         byte[] data = new byte[length];
         ByteBuf byteBuffer = Unpooled.compositeBuffer();
         byteBuffer.writeLong(ledgerId); // Ledger
         byteBuffer.writeLong(entryId); // Entry
-        byteBuffer.writeLong(lastAddConfirmed); // LAC
+        byteBuffer.writeLong(lac); // LAC
         byteBuffer.writeLong(length); // Length
         byteBuffer.writeBytes(data);
         return byteBuffer;
@@ -102,12 +113,12 @@ public class ComputeDigestAndPackageForSendingTest extends TestCase {
 
 
     //create a buffer related to the single entry
-    private static ByteBuf createEntry(int length) {
+    private static ByteBuf createEntry(int length, long lac, long entryId) {
         byte[] data = new byte[length];
         ByteBuf byteBuffer = Unpooled.buffer(1024);
         byteBuffer.writeLong(ledgerId); // Ledger
         byteBuffer.writeLong(entryId); // Entry
-        byteBuffer.writeLong(lastAddConfirmed); // LAC
+        byteBuffer.writeLong(lac); // LAC
         byteBuffer.writeLong(length); // Length
         byteBuffer.writeBytes(data);
         return byteBuffer;
