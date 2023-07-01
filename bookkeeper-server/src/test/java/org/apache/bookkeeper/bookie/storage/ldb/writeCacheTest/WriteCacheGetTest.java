@@ -24,22 +24,25 @@ public class WriteCacheGetTest extends TestCase {
     private ByteBuf result;
     private ByteBuf entry;
 
-    private final static String entryString = "HelloWorld";
+    private final static String entryString = generateRandomString(1024);
+    //private final static String entryString = "";
 
 
 
     private static final ByteBufAllocator allocator = UnpooledByteBufAllocator.DEFAULT;
     private static final int entrySize = 1024;
+    private int maxSegmentSize;
     private static final int cacheCapability = 2 * entrySize;
     private static WriteCache cache;
 
-    public WriteCacheGetTest(long ledgerId, long entryId, ByteBuf expected) {
-        configure(ledgerId, entryId, expected);
+    public WriteCacheGetTest(long ledgerId, long entryId, int maxSegmentSize, ByteBuf expected) {
+        configure(ledgerId, entryId, maxSegmentSize, expected);
     }
 
-    private void configure(long ledgerId, long entryId, ByteBuf expected){
+    private void configure(long ledgerId, long entryId, int maxSegmentSize, ByteBuf expected){
         this.ledgerId = ledgerId;
         this.entryId = entryId;
+        this.maxSegmentSize = maxSegmentSize;
         this.expected = expected;
     }
 
@@ -52,15 +55,19 @@ public class WriteCacheGetTest extends TestCase {
         validEntry.writeBytes(entryString.getBytes());
 
         return Arrays.asList(new Object[][] {
-                {-1, -1, null},          // 0
-                {-1, 0, null},    // 1
-                {-1, 1, null},  // 2
-                {0, -1, null},           // 3
-                {0, 0, validEntry},     // 4
-                {0, 1, validEntry},   // 5
-                {1, -1, null},           // 6
-                {1, 0, validEntry},     // 7
-                {1, 1, validEntry},   // 8
+                {-1, -1, entrySize, null},          // 0
+                {-1, 0, entrySize, null},    // 1
+                {-1, 1, entrySize, null},  // 2
+                {0, -1, entrySize, null},           // 3
+                {0, 0, entrySize, validEntry},     // 4
+                {0, 1, entrySize, validEntry},   // 5
+                {1, -1, entrySize, null},           // 6
+                {1, 0, entrySize, validEntry},     // 7
+                {1, 1, entrySize, validEntry},   // 8
+
+                //tests to kill mutations
+                {1, 1, 512, null},   // 9
+                {1, 1, entrySize, validEntry}, //10
 
         });
     }
@@ -69,7 +76,12 @@ public class WriteCacheGetTest extends TestCase {
 
     @Test
     public void getTest() {
-        cache = new WriteCache(this.allocator, this.cacheCapability);
+        if(maxSegmentSize != 0){
+            cache = new WriteCache(this.allocator, this.cacheCapability,this.maxSegmentSize);
+        }else{
+            cache = new WriteCache(this.allocator, this.cacheCapability);
+        }
+
         this.entry = allocator.buffer(entrySize);
         this.entry.writeBytes(entryString.getBytes());
 
@@ -87,6 +99,20 @@ public class WriteCacheGetTest extends TestCase {
         }
 
         assertEquals(expected, result);
+    }
+
+    public static String generateRandomString(int length) {
+        String characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        StringBuilder sb = new StringBuilder(length);
+        Random random = new Random();
+
+        for (int i = 0; i < length; i++) {
+            int randomIndex = random.nextInt(characters.length());
+            char randomChar = characters.charAt(randomIndex);
+            sb.append(randomChar);
+        }
+
+        return sb.toString();
     }
 
 
