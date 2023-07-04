@@ -8,6 +8,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Random;
@@ -18,14 +19,12 @@ public class WriteCacheGetTest extends TestCase {
 
     private long ledgerId;
     private long entryId;
-
-    private ByteBuf expected;
+    private Object expected;
 
     private ByteBuf result;
     private ByteBuf entry;
 
-    private final static String entryString = generateRandomString(1024);
-    //private final static String entryString = "";
+    private final static String entryString = generateRandomString(6);
 
 
 
@@ -35,11 +34,11 @@ public class WriteCacheGetTest extends TestCase {
     private static final int cacheCapability = 2 * entrySize;
     private static WriteCache cache;
 
-    public WriteCacheGetTest(long ledgerId, long entryId, int maxSegmentSize, ByteBuf expected) {
+    public WriteCacheGetTest(long ledgerId, long entryId, int maxSegmentSize, Object expected) {
         configure(ledgerId, entryId, maxSegmentSize, expected);
     }
 
-    private void configure(long ledgerId, long entryId, int maxSegmentSize, ByteBuf expected){
+    private void configure(long ledgerId, long entryId, int maxSegmentSize, Object expected){
         this.ledgerId = ledgerId;
         this.entryId = entryId;
         this.maxSegmentSize = maxSegmentSize;
@@ -51,13 +50,13 @@ public class WriteCacheGetTest extends TestCase {
     @Parameterized.Parameters
     public static Collection parameters(){
 
-        ByteBuf validEntry = allocator.buffer(entrySize);
+        ByteBuf validEntry = allocator.buffer(entryString.length());
         validEntry.writeBytes(entryString.getBytes());
 
         return Arrays.asList(new Object[][] {
-                {-1, -1, entrySize, null},          // 0
-                {-1, 0, entrySize, null},    // 1
-                {-1, 1, entrySize, null},  // 2
+                {-1, -1, entrySize, IllegalArgumentException.class},          // 0
+                {-1, 0, entrySize, IllegalArgumentException.class},    // 1
+                {-1, 1, entrySize, IllegalArgumentException.class},  // 2
                 {0, -1, entrySize, null},           // 3
                 {0, 0, entrySize, validEntry},     // 4
                 {0, 1, entrySize, validEntry},   // 5
@@ -65,9 +64,9 @@ public class WriteCacheGetTest extends TestCase {
                 {1, 0, entrySize, validEntry},     // 7
                 {1, 1, entrySize, validEntry},   // 8
 
-                //tests to kill mutations
-                {1, 1, 512, null},   // 9
-                {1, 1, entrySize, validEntry}, //10
+                //additional tests
+                {1, 1, entryString.length()-2, null},   // 9
+                {1, 1, 0, validEntry}, //10
 
         });
     }
@@ -77,28 +76,32 @@ public class WriteCacheGetTest extends TestCase {
     @Test
     public void getTest() {
         if(maxSegmentSize != 0){
-            cache = new WriteCache(this.allocator, this.cacheCapability,this.maxSegmentSize);
+            //custom
+            cache = new WriteCache(allocator, cacheCapability,this.maxSegmentSize);
         }else{
-            cache = new WriteCache(this.allocator, this.cacheCapability);
+            //default
+            cache = new WriteCache(allocator, cacheCapability);
         }
 
-        this.entry = allocator.buffer(entrySize);
+        this.entry = allocator.buffer(entryString.length());
         this.entry.writeBytes(entryString.getBytes());
 
-       try {
-            cache.put(this.ledgerId, this.entryId, this.entry);
-        } catch (Exception e) {
-            //this.result = null;
-        }
+        cache.put(0, 0, this.entry);
+        cache.put(1, 1, this.entry);
+        cache.put(1, 0, this.entry);
+        cache.put(0, 1, this.entry);
 
 
        try {
             this.result = cache.get(this.ledgerId, this.entryId);
+            assertEquals(expected, result);
+            if(result != null){
+                assertEquals(entryString, result.toString(Charset.defaultCharset()));
+            }
         } catch (Exception e) {
-            this.result = null;
+           assertEquals(expected, e.getClass());
         }
 
-        assertEquals(expected, result);
     }
 
     public static String generateRandomString(int length) {
