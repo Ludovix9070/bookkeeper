@@ -16,6 +16,7 @@ import org.junit.runners.Parameterized;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Random;
 
 /*test for the private method computeDigestAndPackageForSendingV3*/
 
@@ -51,18 +52,22 @@ public class ComputeDigestAndPackageForSendingTest extends TestCase {
 
     @Parameterized.Parameters
     public static Collection parameters() throws Exception {
+
+        ByteBuf invalidEntry = Unpooled.buffer(0);
+        invalidEntry.writeBytes(generateRandomString(0).getBytes());
+
         return Arrays.asList(new Object[][] {
 
                 //entryId, lastAddConfirmed, length, data, expected
-
                 //Tests based on monodimensional analysis
-                {-1,-1,0,null, NullPointerException.class},
-                {1,0,0,createEntry(0, 0, 1), null},
-                {2,1,1,createEntry(1, 1, 2), null},
+                {-1,0,-1,null, NullPointerException.class},
+                {1,1,0,createEntry(0, 1, 1), null},
+                {2,-1,1,invalidEntry, IndexOutOfBoundsException.class},
 
                 //tests to have a better coverage
                 {0,1,0,createCompositeByteBufEntry(0, 1, 0),null},
                 {0,1,0,createWrappedEntry(0, 1, 0),null},
+                {2,1,1,createEntry(1, 1, 2), null},
 
                 //tests for mutations
                 {2,1,60,createEntry(60, 1, 2), null},
@@ -74,7 +79,7 @@ public class ComputeDigestAndPackageForSendingTest extends TestCase {
 
     @Before
     public void setUp() throws GeneralSecurityException {
-        this.digestManager = DigestManager.instantiate(ledgerId, "password".getBytes(), DataFormats.LedgerMetadataFormat.DigestType.HMAC, UnpooledByteBufAllocator.DEFAULT, flagIsV2Proto);
+        digestManager = DigestManager.instantiate(ledgerId, "password".getBytes(), DataFormats.LedgerMetadataFormat.DigestType.HMAC, UnpooledByteBufAllocator.DEFAULT, flagIsV2Proto);
         //this.entryTest = createEntry((int)length);
     }
 
@@ -82,7 +87,9 @@ public class ComputeDigestAndPackageForSendingTest extends TestCase {
     public void testComputeDigestData() {
 
         try {
-            this.entryTest = createEntry((int)length, this.lastAddConfirmed, this.entryId);
+            if(this.length >=0){
+                this.entryTest = createEntry((int)length, this.lastAddConfirmed, this.entryId);
+            }
             ByteBufList byteBuf = (ByteBufList) digestManager.computeDigestAndPackageForSending(entryId, lastAddConfirmed, length, data,dummy, dummyInt);
             assertEquals(entryTest.readLong(), byteBuf.getBuffer(1).readLong());
             assertEquals(entryTest.readLong(), byteBuf.getBuffer(1).readLong());
@@ -122,5 +129,19 @@ public class ComputeDigestAndPackageForSendingTest extends TestCase {
         byteBuffer.writeLong(length); // Length
         byteBuffer.writeBytes(data);
         return byteBuffer;
+    }
+
+    public static String generateRandomString(int length) {
+        String characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        StringBuilder sb = new StringBuilder(length);
+        Random random = new Random();
+
+        for (int i = 0; i < length; i++) {
+            int randomIndex = random.nextInt(characters.length());
+            char randomChar = characters.charAt(randomIndex);
+            sb.append(randomChar);
+        }
+
+        return sb.toString();
     }
 }
