@@ -114,9 +114,13 @@ public class WriteCachePutTest extends TestCase {
             cache = new WriteCache(allocator, 1023,entrySize);
         }
 
+        assertEquals(0,cache.count());
 
         try {
             this.result = cache.put(this.ledgerId, this.entryId, this.entry);
+            if(this.result == true){
+                assertEquals(1, cache.count());
+            }
             assertEquals(expected, result);
         } catch (Exception e) {
             assertEquals(expected, e.getClass());
