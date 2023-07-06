@@ -14,6 +14,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.nio.charset.Charset;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -34,21 +35,23 @@ public class VerifyDigestTest extends TestCase{
         private boolean skipEntryIdCheck;
         private boolean need32Manager;
         private ByteBuf entryTest;
+        private boolean limit;
         private static int dummyInt = 1;
         private static byte[] dummy = null;
         private static String bufferString = generateRandomString(length);
 
 
-        public VerifyDigestTest(long entryId, ByteBuf dataReceived, boolean skipEntryIdCheck, boolean need32Manager, Object expected) {
-            configure(entryId, dataReceived, skipEntryIdCheck, need32Manager, expected);
+        public VerifyDigestTest(long entryId, ByteBuf dataReceived, boolean skipEntryIdCheck, boolean need32Manager, boolean limit, Object expected) {
+            configure(entryId, dataReceived, skipEntryIdCheck, need32Manager, limit, expected);
         }
 
-        private void configure(long entryId, ByteBuf dataReceived, boolean skipEntryIdCheck, boolean need32Manager, Object expected){
+        private void configure(long entryId, ByteBuf dataReceived, boolean skipEntryIdCheck, boolean need32Manager, boolean limit, Object expected){
             this.dataReceived = dataReceived;
             this.entryId = entryId;
             this.expected = expected;
             this.skipEntryIdCheck = skipEntryIdCheck;
             this.need32Manager = need32Manager;
+            this.limit = limit;
 
         }
 
@@ -62,28 +65,28 @@ public class VerifyDigestTest extends TestCase{
             return Arrays.asList(new Object[][] {
 
 
-                    //entryId dataReceived skip need32 multidimensional base analysis
-                    {-1,null, false,false, NullPointerException.class},
-                    {-1,ByteBufList.coalesce(createEntryWithDigest(length,ledgerId,0, DataFormats.LedgerMetadataFormat.DigestType.HMAC)),false,false, BKException.BKDigestMatchException.class},
-                    {-1,ByteBufList.coalesce(createEntryWithDigest(length,ledgerId,-1, DataFormats.LedgerMetadataFormat.DigestType.HMAC)),false, false, BKException.BKDigestMatchException.class},
-                    {0,null,false,false, NullPointerException.class},
-                    {0,ByteBufList.coalesce(createEntryWithDigest(length,ledgerId,1, DataFormats.LedgerMetadataFormat.DigestType.HMAC)),false, false, BKException.BKDigestMatchException.class},
-                    {0,ByteBufList.coalesce(createEntryWithDigest(length,ledgerId,0, DataFormats.LedgerMetadataFormat.DigestType.HMAC)),false,false, null},
-                    {1,null,false,false, NullPointerException.class},
-                    {1,ByteBufList.coalesce(createEntryWithDigest(length,ledgerId,2, DataFormats.LedgerMetadataFormat.DigestType.HMAC)),false,false, BKException.BKDigestMatchException.class},
-                    {1,ByteBufList.coalesce(createEntryWithDigest(length,ledgerId,1, DataFormats.LedgerMetadataFormat.DigestType.HMAC)),false,false, null},
+                    //entryId dataReceived skip need32 limit multidimensional base analysis
+                    {-1,null, false,false, false, NullPointerException.class},
+                    {-1,ByteBufList.coalesce(createEntryWithDigest(length,ledgerId,0, DataFormats.LedgerMetadataFormat.DigestType.HMAC)),false,false,false, BKException.BKDigestMatchException.class},
+                    {-1,ByteBufList.coalesce(createEntryWithDigest(length,ledgerId,-1, DataFormats.LedgerMetadataFormat.DigestType.HMAC)),false, false,false, BKException.BKDigestMatchException.class},
+                    {0,null,false,false, false, NullPointerException.class},
+                    {0,ByteBufList.coalesce(createEntryWithDigest(length,ledgerId,1, DataFormats.LedgerMetadataFormat.DigestType.HMAC)),false, false,false, BKException.BKDigestMatchException.class},
+                    {0,ByteBufList.coalesce(createEntryWithDigest(length,ledgerId,0, DataFormats.LedgerMetadataFormat.DigestType.HMAC)),false,false, false, null},
+                    {1,null,false,false,false, NullPointerException.class},
+                    {1,ByteBufList.coalesce(createEntryWithDigest(length,ledgerId,2, DataFormats.LedgerMetadataFormat.DigestType.HMAC)),false,false,false, BKException.BKDigestMatchException.class},
+                    {1,ByteBufList.coalesce(createEntryWithDigest(length,ledgerId,1, DataFormats.LedgerMetadataFormat.DigestType.HMAC)),false,false,false, null},
 
                     //tests to have a better coverage
-                    {1,ByteBufList.coalesce(createBadShortEntryWithDigest(20)),false,false, BKException.BKDigestMatchException.class},
-                    {1,ByteBufList.coalesce(createEntryWithDigest(length,ledgerId,1, DataFormats.LedgerMetadataFormat.DigestType.CRC32)),false,false, BKException.BKDigestMatchException.class},
-                    {1,ByteBufList.coalesce(createEntryWithDigest(length,ledgerId,1, DataFormats.LedgerMetadataFormat.DigestType.HMAC)),false,true, BKException.BKDigestMatchException.class},
-                    {1,ByteBufList.coalesce(createEntryWithDigest(length,ledgerId+1,1, DataFormats.LedgerMetadataFormat.DigestType.HMAC)),false,false, BKException.BKDigestMatchException.class},
-                    {1,ByteBufList.coalesce(createEntryWithDigest(length,ledgerId,1, DataFormats.LedgerMetadataFormat.DigestType.CRC32C)),false,true, null},
+                    {1,ByteBufList.coalesce(createBadShortEntryWithDigest(20)),false,false,false, BKException.BKDigestMatchException.class},
+                    {1,ByteBufList.coalesce(createEntryWithDigest(length,ledgerId,1, DataFormats.LedgerMetadataFormat.DigestType.CRC32)),false,false,false, BKException.BKDigestMatchException.class},
+                    {1,ByteBufList.coalesce(createEntryWithDigest(length,ledgerId,1, DataFormats.LedgerMetadataFormat.DigestType.HMAC)),false,true,false, BKException.BKDigestMatchException.class},
+                    {1,ByteBufList.coalesce(createEntryWithDigest(length,ledgerId+1,1, DataFormats.LedgerMetadataFormat.DigestType.HMAC)),false,false,false, BKException.BKDigestMatchException.class},
+                    {1,ByteBufList.coalesce(createEntryWithDigest(length,ledgerId,1, DataFormats.LedgerMetadataFormat.DigestType.CRC32C)),false,true,false, null},
 
                     //tests for mutations
-                    {1,ByteBufList.coalesce(createGoodLimitEntryWithDigest(ledgerId,1, DataFormats.LedgerMetadataFormat.DigestType.HMAC)),false,false, null},
-                    {1,ByteBufList.coalesce(createEntryWithLacDigest(length,ledgerId,1, DataFormats.LedgerMetadataFormat.DigestType.HMAC)),true,false, null},
-                    {1,ByteBufList.coalesce(createBadShortEntryWithDigest(6)),true,false, BKException.BKDigestMatchException.class},
+                    {1,ByteBufList.coalesce(createGoodLimitEntryWithDigest(ledgerId,1, DataFormats.LedgerMetadataFormat.DigestType.HMAC)),false,false, true, null},
+                    {1,ByteBufList.coalesce(createEntryWithLacDigest(length,ledgerId,1, DataFormats.LedgerMetadataFormat.DigestType.HMAC)),true,false, false, null},
+                    {1,ByteBufList.coalesce(createBadShortEntryWithDigest(6)),true,false, false, BKException.BKDigestMatchException.class},
 
             });
         }
@@ -113,9 +116,11 @@ public class VerifyDigestTest extends TestCase{
                 }
 
                 if(!skipEntryIdCheck){
-                    ByteBuf dataToCompare = Unpooled.buffer((int)length);
-                    dataToCompare.writeBytes(dataBack,0,(int)length);
-                    assertEquals(this.entryTest.toString(), dataToCompare.toString());
+                    if(limit){
+                        assertEquals("", dataBack.toString(Charset.defaultCharset()));
+                    }else{
+                        assertEquals(this.entryTest.toString(Charset.defaultCharset()), dataBack.toString(Charset.defaultCharset()));
+                    }
                 }else{
                     assertEquals(1,recoveryData.getLastAddConfirmed());
                 }
