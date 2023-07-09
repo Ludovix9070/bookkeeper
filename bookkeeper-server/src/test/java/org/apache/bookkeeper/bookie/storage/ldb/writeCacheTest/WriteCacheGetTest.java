@@ -54,19 +54,19 @@ public class WriteCacheGetTest extends TestCase {
         validEntry.writeBytes(entryString.getBytes());
 
         return Arrays.asList(new Object[][] {
-                {-1, -1, entrySize, IllegalArgumentException.class},          // 0
-                {-1, 0, entrySize, IllegalArgumentException.class},    // 1
-                {-1, 1, entrySize, IllegalArgumentException.class},  // 2
-                {0, -1, entrySize, null},           // 3
-                {0, 0, entrySize, validEntry},     // 4
-                {0, 1, entrySize, validEntry},   // 5
-                {1, -1, entrySize, null},           // 6
-                {1, 0, entrySize, validEntry},     // 7
-                {1, 1, entrySize, validEntry},   // 8
+                {-1, -1, entrySize, IllegalArgumentException.class},
+                {-1, 0, entrySize, IllegalArgumentException.class},
+                {-1, 1, entrySize, IllegalArgumentException.class},
+                {0, -1, entrySize, null},
+                {0, 0, entrySize, validEntry},
+                {0, 1, entrySize, validEntry},
+                {1, -1, entrySize, null},
+                {1, 0, entrySize, validEntry},
+                {1, 1, entrySize, validEntry},
 
                 //additional tests
-                {1, 1, entryString.length()-2, null},   // 9
-                {1, 1, 0, validEntry}, //10
+                {1, 1, entryString.length()-2, null},
+                {1, 1, 0, validEntry},
 
         });
     }

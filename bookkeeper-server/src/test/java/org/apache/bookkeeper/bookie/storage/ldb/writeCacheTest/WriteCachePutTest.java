@@ -61,42 +61,38 @@ public class WriteCachePutTest extends TestCase {
 
         return Arrays.asList(new Object[][] {
 
-                //ledgerId entryid entry
-                {-1, -1, null, entrySize, NullPointerException.class},          // 0
-                {-1, -1, validEntry, entrySize, IllegalArgumentException.class},    // 1
-                {-1, -1, invalidEntry, cacheCapability+invalidSize, false},  // 2
-                {-1, 0, null, entrySize, NullPointerException.class},           // 3
-                {-1, 0, validEntry, entrySize, IllegalArgumentException.class},     // 4
-                {-1, 0, invalidEntry, cacheCapability+invalidSize, false},   // 5
-                {-1, 1, null, entrySize, NullPointerException.class},           // 6
-                {-1, 1, validEntry, entrySize, IllegalArgumentException.class},     // 7
-                {-1, 1, invalidEntry, cacheCapability+invalidSize, false},   // 8
-                {0, -1, null, entrySize, NullPointerException.class},           // 9
-                {0, -1, validEntry, entrySize, IllegalArgumentException.class},     // 10
-                {0, -1, invalidEntry, cacheCapability+invalidSize, false},   // 11
-                {0, 0, null, entrySize, NullPointerException.class},            // 12
-                {0, 0, validEntry, entrySize, true},       // 13
-                {0, 0, invalidEntry, cacheCapability+invalidSize, false},    // 14
-                {0, 1, null, entrySize, NullPointerException.class},            // 15
-                {0, 1, validEntry, entrySize, true},       // 16
-                {0, 1, invalidEntry, cacheCapability+invalidSize, false},    // 17
-                {1, -1, null, entrySize, NullPointerException.class},           // 18
-                {1, -1, validEntry, entrySize, IllegalArgumentException.class},     // 19
-                {1, -1, invalidEntry, cacheCapability+invalidSize, false},   // 20
-                {1, 0, null, entrySize, NullPointerException.class},            // 21
-                {1, 0, validEntry, entrySize, true},       // 22
-                {1, 0, invalidEntry, cacheCapability+invalidSize, false},    // 23
-                {1, 1, null, entrySize, NullPointerException.class},            // 24
-                {1, 1, validEntry, entrySize, true},       // 25
-                {1, 1, invalidEntry, cacheCapability+invalidSize, false},    // 26
+                {-1, -1, null, entrySize, NullPointerException.class},
+                {-1, -1, validEntry, entrySize, IllegalArgumentException.class},
+                {-1, -1, invalidEntry, cacheCapability+invalidSize, false},
+                {-1, 0, null, entrySize, NullPointerException.class},
+                {-1, 0, validEntry, entrySize, IllegalArgumentException.class},
+                {-1, 0, invalidEntry, cacheCapability+invalidSize, false},
+                {-1, 1, null, entrySize, NullPointerException.class},
+                {-1, 1, validEntry, entrySize, IllegalArgumentException.class},
+                {-1, 1, invalidEntry, cacheCapability+invalidSize, false},
+                {0, -1, null, entrySize, NullPointerException.class},
+                {0, -1, validEntry, entrySize, IllegalArgumentException.class},
+                {0, -1, invalidEntry, cacheCapability+invalidSize, false},
+                {0, 0, null, entrySize, NullPointerException.class},
+                {0, 0, validEntry, entrySize, true},
+                {0, 0, invalidEntry, cacheCapability+invalidSize, false},
+                {0, 1, null, entrySize, NullPointerException.class},
+                {0, 1, validEntry, entrySize, true},
+                {0, 1, invalidEntry, cacheCapability+invalidSize, false},
+                {1, -1, null, entrySize, NullPointerException.class},
+                {1, -1, validEntry, entrySize, IllegalArgumentException.class},
+                {1, -1, invalidEntry, cacheCapability+invalidSize, false},
+                {1, 0, null, entrySize, NullPointerException.class},
+                {1, 0, validEntry, entrySize, true},
+                {1, 0, invalidEntry, cacheCapability+invalidSize, false},
+                {1, 1, null, entrySize, NullPointerException.class},
+                {1, 1, validEntry, entrySize, true},
+                {1, 1, invalidEntry, cacheCapability+invalidSize, false},
 
                 //tests for mutations
-                //for changed boundary row 150, working
-                {1, 1, limitEntry, cacheCapability, true},       // 27
-                {1, 1, limitEntry, entrySize, false},       // 28
-                //for replaced long addiction with substraction row 150, working
-                {1, 1, validEntry, 0, false}, //29
-                //row153, still to work on it
+                {1, 1, limitEntry, cacheCapability, true},
+                {1, 1, limitEntry, entrySize, false},
+                {1, 1, validEntry, 0, false},
                 {1, 1, limitMutantEntry, entrySize, false},
 
         });

@@ -58,11 +58,10 @@ public class ComputeDigestAndPackageForSendingTest extends TestCase {
 
         return Arrays.asList(new Object[][] {
 
-                //entryId, lastAddConfirmed, length, data, expected
                 //Tests based on monodimensional analysis
                 {-1,0,-1,null, NullPointerException.class},
                 {1,1,0,createEntry(0, 1, 1), null},
-                {2,-1,1,invalidEntry, IndexOutOfBoundsException.class},
+                {0,-1,1,invalidEntry, IndexOutOfBoundsException.class},
 
                 //tests to have a better coverage
                 {0,1,0,createCompositeByteBufEntry(0, 1, 0),null},
@@ -80,7 +79,6 @@ public class ComputeDigestAndPackageForSendingTest extends TestCase {
     @Before
     public void setUp() throws GeneralSecurityException {
         digestManager = DigestManager.instantiate(ledgerId, "password".getBytes(), DataFormats.LedgerMetadataFormat.DigestType.HMAC, UnpooledByteBufAllocator.DEFAULT, flagIsV2Proto);
-        //this.entryTest = createEntry((int)length);
     }
 
     @Test
@@ -100,33 +98,32 @@ public class ComputeDigestAndPackageForSendingTest extends TestCase {
         }
     }
 
-    //creation of WrappedEntry
+
     private static ByteBuf createWrappedEntry(int length, long lac, long entryId) {
         ByteBuf byteBuffer = createEntry(length, lac, entryId);
         return Unpooled.wrappedBuffer(byteBuffer);
     }
 
-    //creation of a CompositeByteBuf
+
     private static ByteBuf createCompositeByteBufEntry(int length, long lac, long entryId) {
         byte[] data = new byte[length];
         ByteBuf byteBuffer = Unpooled.compositeBuffer();
-        byteBuffer.writeLong(ledgerId); // Ledger
-        byteBuffer.writeLong(entryId); // Entry
-        byteBuffer.writeLong(lac); // LAC
-        byteBuffer.writeLong(length); // Length
+        byteBuffer.writeLong(ledgerId);
+        byteBuffer.writeLong(entryId);
+        byteBuffer.writeLong(lac);
+        byteBuffer.writeLong(length);
         byteBuffer.writeBytes(data);
         return byteBuffer;
     }
 
 
-    //create a buffer related to the single entry
     private static ByteBuf createEntry(int length, long lac, long entryId) {
         byte[] data = new byte[length];
         ByteBuf byteBuffer = Unpooled.buffer(1024);
-        byteBuffer.writeLong(ledgerId); // Ledger
-        byteBuffer.writeLong(entryId); // Entry
-        byteBuffer.writeLong(lac); // LAC
-        byteBuffer.writeLong(length); // Length
+        byteBuffer.writeLong(ledgerId);
+        byteBuffer.writeLong(entryId);
+        byteBuffer.writeLong(lac);
+        byteBuffer.writeLong(length);
         byteBuffer.writeBytes(data);
         return byteBuffer;
     }

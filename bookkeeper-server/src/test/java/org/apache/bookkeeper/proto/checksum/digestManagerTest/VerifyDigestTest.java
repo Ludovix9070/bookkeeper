@@ -56,16 +56,13 @@ public class VerifyDigestTest extends TestCase{
         }
 
 
-
-        //private void verifyDigest(long entryId, ByteBuf dataReceived, boolean skipEntryIdCheck)
-
         @Parameterized.Parameters
         public static Collection parameters() throws Exception {
 
             return Arrays.asList(new Object[][] {
 
 
-                    //entryId dataReceived skip need32 limit multidimensional base analysis
+                    //tests based on multidimensional analysis
                     {-1,null, false,false, false, NullPointerException.class},
                     {-1,ByteBufList.coalesce(createEntryWithDigest(length,ledgerId,0, DataFormats.LedgerMetadataFormat.DigestType.HMAC)),false,false,false, BKException.BKDigestMatchException.class},
                     {-1,ByteBufList.coalesce(createEntryWithDigest(length,ledgerId,-1, DataFormats.LedgerMetadataFormat.DigestType.HMAC)),false, false,false, BKException.BKDigestMatchException.class},
@@ -130,7 +127,6 @@ public class VerifyDigestTest extends TestCase{
             }
         }
 
-    //creation of a validEntry with digest
     private static ByteBufList createEntryWithDigest(long length, long inputLedgerId, long inputEntryId, DataFormats.LedgerMetadataFormat.DigestType type) throws GeneralSecurityException {
         DigestManager digestMan = DigestManager.instantiate(inputLedgerId, "password".getBytes(), type, UnpooledByteBufAllocator.DEFAULT, false);
         ByteBuf byteBuffer = createEntry(length);
@@ -145,7 +141,6 @@ public class VerifyDigestTest extends TestCase{
         return byteBufList;
     }
 
-    //creation of an entry with limit dimension to kill mutant
     private static ByteBufList createGoodLimitEntryWithDigest(long inputLedgerId, long inputEntryId, DataFormats.LedgerMetadataFormat.DigestType type) throws GeneralSecurityException {
         DigestManager digestMan = DigestManager.instantiate(inputLedgerId, "password".getBytes(), type, UnpooledByteBufAllocator.DEFAULT, false);
         ByteBuf byteBuffer = createShortValidEntry(0);
@@ -154,7 +149,6 @@ public class VerifyDigestTest extends TestCase{
     }
 
     private static ByteBufList createBadShortEntryWithDigest(int shorterLength) throws GeneralSecurityException {
-        //int shorterLength = 20; //must be less than 52
         byte[] data = generateRandomString(shorterLength).getBytes();
         ByteBuf byteBuffer = Unpooled.buffer(shorterLength);
         byteBuffer.writeBytes(data);
